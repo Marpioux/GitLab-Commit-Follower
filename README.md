@@ -1,5 +1,3 @@
-# yaml2json
-Convert yaml (found in flutter project) to json
 ## Installation
 
 ```smalltalk
