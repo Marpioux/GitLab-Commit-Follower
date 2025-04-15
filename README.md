@@ -3,7 +3,7 @@
 ```smalltalk
 Metacello new
   githubUser: 'Marpioux' project: 'GitLab-Commit-Follower' commitish: 'master' path: 'src';
-  baseline: 'myproject';
+  baseline: 'GitLabCommitFollower';
   load
 ```
 
@@ -34,8 +34,9 @@ tracer := Tracer new
    glhImporter: modelImporter;
    gitlabApi: glphApi;
    project: (modelImporter importProject: <YOUR_PROJECT_ID>);
+   filter: "Enter a string to filter commits by message, or an integer corresponding to a GitLab user ID to filter by author."
    yourself.
 			
-tracer findImpactLinesInCurrentFiles
+tracer findRelevantChangesInFiles
 			
 ```
