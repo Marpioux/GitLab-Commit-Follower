@@ -19,7 +19,6 @@ BaselineOfGitLabCommitFollower >> baseline: spec [
 { #category : 'baselines' }
 BaselineOfGitLabCommitFollower >> defineDependencies: spec [
 "donne les ref vers le projet qui se trouve sur un depot distance (je crois)"
-   spec baseline: 'GitlabAPI' with: [spec repository: 'github://Evref-BL/Gitlab-Pharo-API:main' ].
 	spec baseline: 'GitLabHealth' with: [ spec repository: 'github://moosetechnology/GitProjectHealth:main/src' ].
 ]
 
@@ -32,5 +31,5 @@ BaselineOfGitLabCommitFollower >> defineGroups: spec [
 BaselineOfGitLabCommitFollower >> definePackages: spec [
 
    spec
-   	package: 'GitLabFollower' with: [ spec requires: #( 'GitlabAPI' 'GitLabHealth' ) ].
+   	package: 'GitLabFollower' with: [ spec requires: #( 'GitLabHealth' ) ].
 ]
