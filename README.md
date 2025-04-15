@@ -37,6 +37,6 @@ tracer := Tracer new
    filter: "Enter a string to filter commits by message, or an integer corresponding to a GitLab user ID to filter by author."
    yourself.
 			
-tracer findImpactLinesInCurrentFiles
+tracer findRelevantChangesInFiles
 			
 ```
