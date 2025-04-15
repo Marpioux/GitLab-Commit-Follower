@@ -34,6 +34,7 @@ tracer := Tracer new
    glhImporter: modelImporter;
    gitlabApi: glphApi;
    project: (modelImporter importProject: <YOUR_PROJECT_ID>);
+   filter: "Enter a string to filter commits by message, or an integer corresponding to a GitLab user ID to filter by author."
    yourself.
 			
 tracer findImpactLinesInCurrentFiles
