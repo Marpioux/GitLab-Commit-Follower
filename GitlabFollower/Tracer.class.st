@@ -4,7 +4,8 @@ Class {
 	#instVars : [
 		'project',
 		'glhImporter',
-		'gitlabApi'
+		'gitlabApi',
+		'filter'
 	],
 	#category : 'GitlabFollower',
 	#package : 'GitlabFollower'
@@ -52,33 +53,50 @@ Tracer >> cleanDeletedLines: aString [
 	^cleanedLines "byteString".
 ]
 
+{ #category : 'accessing' }
+Tracer >> filter [
+	^filter
+]
+
+{ #category : 'accessing' }
+Tracer >> filter: aString [
+	filter := aString.
+]
+
 { #category : 'creation' }
 Tracer >> findImpactLinesInCurrentFiles [
-	| commits file addedLines deletedLines jSon aCommitFollowed |
-	
+
+	| commits file addedLines deletedLines jSonKeepedChanges jSonDeasepearedChanges aCommitFollowed |
+	self
+		deprecated: 'Use findRelevantChangesInFiles instead of current one'
+		on: '15 April 2025'
+		in:
+		'Pharo-12.0.0+SNAPSHOT.build.1570.sha.3dafb8a476dfe88afa5aa6bf7b148beb9c11003f (64 Bit)'.
+
 	commits := self retrieveCommitsByACR.
-	jSon := OrderedCollection new.
-	
-	commits do: [ :commit | 
-		  (commit diffs) do: [ :diff |
-			 file := gitlabApi repositories getRawFile: diff name ofProject: project id.
-			 addedLines :=  self cleanAddedLines: diff diffString.
-			 deletedLines := self cleanDeletedLines: diff diffString.
+	jSonKeepedChanges := OrderedCollection new.
+	jSonDeasepearedChanges := OrderedCollection new.
+
+	commits do: [ :commit |
+		commit diffs do: [ :diff |
+			file := gitlabApi repositories
+				        getRawFile: diff name
+				        ofProject: project id.
+			addedLines := self cleanAddedLines: diff diffString.
+			deletedLines := self cleanDeletedLines: diff diffString.
 			((self verifyAddLines: addedLines inFile: file) and:
-			(self verifyDeletedLines: deletedLines inFile: file))
-			 ifTrue:[
+				 (self verifyDeletedLines: deletedLines inFile: file)) ifTrue: [
 				aCommitFollowed := Dictionary new.
-				aCommitFollowed at: 'file' put: (diff name).
-				aCommitFollowed at: 'addLines' put: (addedLines asString).
-				aCommitFollowed at: 'deletedLines' put: (deletedLines asString).
-				aCommitFollowed at: 'author' put: (diff commit author_name).
-				aCommitFollowed at: 'commit_id' put: (diff commit id).
-				aCommitFollowed at: 'creation_date' put: ((diff commit created_at) asString).
-				jSon add: aCommitFollowed.].
-			 ].
-		].
-	^NeoJSONWriter toString: jSon.
-	
+				aCommitFollowed at: 'file' put: diff name.
+				aCommitFollowed at: 'addLines' put: addedLines asString.
+				aCommitFollowed at: 'deletedLines' put: deletedLines asString.
+				aCommitFollowed at: 'author' put: diff commit author_name.
+				aCommitFollowed at: 'commit_id' put: diff commit id.
+				aCommitFollowed
+					at: 'creation_date'
+					put: diff commit created_at asString.
+				jSonKeepedChanges add: aCommitFollowed ] ] ].
+	^ NeoJSONWriter toString: jSonKeepedChanges
 ]
 
 { #category : 'treatment' }
@@ -94,6 +112,45 @@ Tracer >> findNotesByAcr [
 	
 
 
+
+]
+
+{ #category : 'creation' }
+Tracer >> findRelevantChangesInFiles [
+	| commitList currentFile addedLines removedLines preservedChanges vanishedChanges changeRecord json |
+
+	commitList := self retrieveCommitsByACR.
+	preservedChanges := OrderedCollection new.
+	vanishedChanges := OrderedCollection new.
+
+	commitList do: [:commit |
+		(commit diffs) do: [:diff |
+			currentFile := gitlabApi repositories getRawFile: diff name ofProject: project id.
+			addedLines := self cleanAddedLines: diff diffString.
+			removedLines := self cleanDeletedLines: diff diffString.
+
+			changeRecord := Dictionary new.
+			changeRecord at: 'file' put: diff name.
+			changeRecord at: 'addLines' put: addedLines.
+			changeRecord at: 'deletedLines' put: removedLines.
+			changeRecord at: 'author' put: diff commit author_name.
+			changeRecord at: 'commit_id' put: diff commit id.
+			changeRecord at: 'creation_date' put: (diff commit created_at) asString.
+
+			((self verifyAddLines: addedLines inFile: currentFile) and:
+			 (self verifyDeletedLines: removedLines inFile: currentFile)) ifTrue: [
+				preservedChanges add: changeRecord.
+			] ifFalse: [
+				vanishedChanges add: changeRecord.
+			].
+		].
+	].
+
+	json := Dictionary new.
+	json at: 'preserved' put: preservedChanges.
+	json at: 'vanished' put: vanishedChanges.
+
+	^NeoJSONWriter toString: json.
 
 ]
 
@@ -134,7 +191,13 @@ Tracer >> retrieveCommitsByACR [
 	mrs := glhImporter importMergeRequests: project.
 	commits := mrs flatCollect: [ :mr | glhImporter importMergeRequestCommits: mr].
 	
-	commitsACR := commits select: [ :commit | commit message asString includesSubstring: 'acr'  ].
+	commitsACR := commits select: [ :commit | 
+		glhImporter importCreatorOfCommit: commit. 
+		(filter isString) ifTrue: [  
+		commit message asString includesSubstring: filter
+		] ifFalse: [ 
+		 commit commitCreator id = filter
+		] ].
 	
 	^commitsACR 
 	
