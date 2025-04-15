@@ -3,7 +3,7 @@
 ```smalltalk
 Metacello new
   githubUser: 'Marpioux' project: 'GitLab-Commit-Follower' commitish: 'master' path: 'src';
-  baseline: 'myproject';
+  baseline: 'GitLabCommitFollower';
   load
 ```
 
