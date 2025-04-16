@@ -59,8 +59,8 @@ Tracer >> filter [
 ]
 
 { #category : 'accessing' }
-Tracer >> filter: aString [
-	filter := aString.
+Tracer >> filter: anObject [
+	filter := anObject.
 ]
 
 { #category : 'creation' }
@@ -147,7 +147,7 @@ Tracer >> findRelevantChangesInFiles [
 	].
 
 	json := Dictionary new.
-	json at: 'preserved' put: preservedChanges.
+	json at: 'perserved' put: preservedChanges.
 	json at: 'vanished' put: vanishedChanges.
 
 	^NeoJSONWriter toString: json.
