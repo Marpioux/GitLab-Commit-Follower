@@ -124,6 +124,7 @@ Tracer >> findRelevantChangesInFiles [
 	vanishedChanges := OrderedCollection new.
 
 	commitList do: [:commit |
+		glhImporter importDiffOfCommit: commit.
 		(commit diffs) do: [:diff |
 			currentFile := gitlabApi repositories getRawFile: diff name ofProject: project id.
 			addedLines := self cleanAddedLines: diff diffString.
@@ -141,6 +142,7 @@ Tracer >> findRelevantChangesInFiles [
 			 (self verifyDeletedLines: removedLines inFile: currentFile)) ifTrue: [
 				preservedChanges add: changeRecord.
 			] ifFalse: [
+				changeRecord at: 'vanished_time' put: (self whenItVanished: diff).
 				vanishedChanges add: changeRecord.
 			].
 		].
@@ -245,4 +247,49 @@ Tracer >> verifyDeletedLines: deletedLines inFile: file [
 			 ] ifFalse: [ ^boolean ].
 		
 	^boolean.
+]
+
+{ #category : 'creation' }
+Tracer >> whenItVanished: aDiff [
+	| addedLines remainingLines commits vanished lastDate modifier |
+
+	addedLines := self cleanAddedLines: aDiff diffString.
+	remainingLines := addedLines copy.
+	commits := glhImporter
+		importCommitsOfProject: project
+		since: aDiff commit created_at 
+		until: Date today.
+
+	vanished := false.
+	modifier := false.
+	lastDate := nil.
+
+	commits do: [ :commit |
+		commit diffs do: [ :diff |
+			| deletedLines |
+			deletedLines := self cleanDeletedLines: diff diffString.
+			(deletedLines anySatisfy: [ :line | addedLines includes: line ]) ifTrue: [
+				modifier := true.
+				lastDate := commit created_at.
+			].
+			remainingLines := remainingLines reject: [ :line |
+				deletedLines includes: line
+			].
+		].
+		(remainingLines isEmpty) ifTrue: [
+			vanished := true.
+			^ { 
+				#lastDate -> lastDate asString. 
+				#vanished -> vanished. 
+				#modifier -> modifier 
+			} asDictionary.
+		].
+	].
+
+	^ { 
+		#lastDate -> lastDate. 
+		#vanished -> vanished. 
+		#modifier -> modifier 
+	} asDictionary
+
 ]
