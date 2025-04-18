@@ -8,6 +8,29 @@ Class {
 	#package : 'GitlabFollower'
 }
 
+{ #category : 'metrics' }
+Metrics >> averageVanishedOrModifiedTime [
+	| vanished json timeAverage totalTime |
+	
+	json := tracer findRelevantChangesInFiles.
+	json := NeoJSONReader fromString: json.
+	vanished := json at: 'vanished'.
+	timeAverage := OrderedCollection new.
+	totalTime := 0.
+	
+	vanished do: [ :aCommit |
+		| vanished_time |
+		vanished_time := (aCommit at: 'vanished_time').
+		((vanished_time at: 'vanished') or: (vanished_time at: 'modifier')) ifTrue: [ 
+			timeAverage add: ((vanished_time at: 'lastDate') asDateAndTime asSeconds - (aCommit at: 'creation_date') asDateAndTime asSeconds) ].
+		 ].
+	
+	timeAverage do: [ :time |
+		totalTime := totalTime + time.
+		 ].
+	^(totalTime / timeAverage size) / 60.0.
+]
+
 { #category : 'utilities' }
 Metrics >> countCommit: aDictionnary [
 	| aCommitArray boolean commitIdExist |
