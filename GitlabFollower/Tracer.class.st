@@ -250,46 +250,62 @@ Tracer >> verifyDeletedLines: deletedLines inFile: file [
 ]
 
 { #category : 'creation' }
-Tracer >> whenItVanished: aDiff [
-	| addedLines remainingLines commits vanished lastDate modifier |
+Tracer >> whenItVanished: aDiff [  
+	| addedLinesSet remainingLinesSet commits vanished lastDate modifier |  
 
-	addedLines := self cleanAddedLines: aDiff diffString.
-	remainingLines := addedLines copy.
+	addedLinesSet := (self cleanAddedLines: aDiff diffString) reject: [:line | line isEmpty].  
+	remainingLinesSet := addedLinesSet copy.  
+
 	commits := glhImporter
 		importCommitsOfProject: project
-		since: aDiff commit created_at 
-		until: Date today.
+		since: aDiff commit created_at
+		until: Date tomorrow.  
 
 	vanished := false.
 	modifier := false.
 	lastDate := nil.
 
 	commits do: [ :commit |
+		glhImporter importDiffOfCommit: commit.  
+
 		commit diffs do: [ :diff |
-			| deletedLines |
-			deletedLines := self cleanDeletedLines: diff diffString.
-			(deletedLines anySatisfy: [ :line | addedLines includes: line ]) ifTrue: [
+			| deletedLinesSet |
+			deletedLinesSet := (self cleanDeletedLines: diff diffString) reject: [:line | line isEmpty].
+
+			(deletedLinesSet anySatisfy: [ :deleted |
+				addedLinesSet anySatisfy: [ :added |
+					added = deleted or: [
+						(added copyWithoutAll: ' ' asSet) = (deleted copyWithoutAll: ' ' asSet)
+					]
+				]
+			]) ifTrue: [
 				modifier := true.
 				lastDate := commit created_at.
 			].
-			remainingLines := remainingLines reject: [ :line |
-				deletedLines includes: line
+		
+			remainingLinesSet := remainingLinesSet reject: [ :added |
+				deletedLinesSet anySatisfy: [ :deleted |
+					added = deleted or: [
+						(added copyWithoutAll: ' ' asSet) = (deleted copyWithoutAll: ' ' asSet)
+					]
+				]
 			].
 		].
-		(remainingLines isEmpty) ifTrue: [
+
+		(remainingLinesSet isEmpty) ifTrue: [
 			vanished := true.
-			^ { 
-				#lastDate -> lastDate asString. 
-				#vanished -> vanished. 
-				#modifier -> modifier 
+			^ {
+				#lastDate -> lastDate asString.
+				#vanished -> vanished.
+				#modifier -> modifier
 			} asDictionary.
 		].
 	].
 
-	^ { 
-		#lastDate -> lastDate. 
-		#vanished -> vanished. 
-		#modifier -> modifier 
+	^ {
+		#lastDate -> lastDate asString.
+		#vanished -> vanished.
+		#modifier -> modifier
 	} asDictionary
 
 ]
