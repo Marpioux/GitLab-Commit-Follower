@@ -250,39 +250,41 @@ Tracer >> verifyDeletedLines: deletedLines inFile: file [
 ]
 
 { #category : 'creation' }
-Tracer >> whenItVanished: aDiff [  
-	| addedLinesSet remainingLinesSet commits vanished lastDate modifier |  
+Tracer >> whenItVanished: aDiff [ 
+	| addedLinesSet remainingLinesSet commits vanished lastDate modifier modifiedOrVanishedLines |
 
-	addedLinesSet := (self cleanAddedLines: aDiff diffString) reject: [:line | line isEmpty].  
-	remainingLinesSet := addedLinesSet copy.  
+	addedLinesSet := (self cleanAddedLines: aDiff diffString) reject: [:line | line isEmpty].
+	remainingLinesSet := addedLinesSet copy.
 
 	commits := glhImporter
 		importCommitsOfProject: project
 		since: aDiff commit created_at
-		until: Date tomorrow.  
+		until: Date tomorrow.
 
 	vanished := false.
 	modifier := false.
 	lastDate := nil.
+	modifiedOrVanishedLines := OrderedCollection new.
 
 	commits do: [ :commit |
-		glhImporter importDiffOfCommit: commit.  
+		glhImporter importDiffOfCommit: commit.
 
 		commit diffs do: [ :diff |
 			| deletedLinesSet |
 			deletedLinesSet := (self cleanDeletedLines: diff diffString) reject: [:line | line isEmpty].
 
-			(deletedLinesSet anySatisfy: [ :deleted |
-				addedLinesSet anySatisfy: [ :added |
+			deletedLinesSet do: [:deleted |
+				(addedLinesSet anySatisfy: [:added |
 					added = deleted or: [
 						(added copyWithoutAll: ' ' asSet) = (deleted copyWithoutAll: ' ' asSet)
 					]
-				]
-			]) ifTrue: [
-				modifier := true.
-				lastDate := commit created_at.
+				]) ifTrue: [
+					modifiedOrVanishedLines add: deleted.
+					modifier := true.
+					lastDate := commit created_at.
+				].
 			].
-		
+
 			remainingLinesSet := remainingLinesSet reject: [ :added |
 				deletedLinesSet anySatisfy: [ :deleted |
 					added = deleted or: [
@@ -297,7 +299,8 @@ Tracer >> whenItVanished: aDiff [
 			^ {
 				#lastDate -> lastDate asString.
 				#vanished -> vanished.
-				#modifier -> modifier
+				#modifier -> modifier.
+				#vanishedLines -> modifiedOrVanishedLines asArray
 			} asDictionary.
 		].
 	].
@@ -305,7 +308,8 @@ Tracer >> whenItVanished: aDiff [
 	^ {
 		#lastDate -> lastDate asString.
 		#vanished -> vanished.
-		#modifier -> modifier
+		#modifier -> modifier.
+		#vanishedLines -> modifiedOrVanishedLines asArray
 	} asDictionary
 
 ]
