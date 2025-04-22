@@ -17,7 +17,7 @@ Little script example :
 ```smalltalk
 glphApi := GitlabApi new 
 	privateToken: #'<YOUR TOKEN>';
-   hostUrl: '<YOU_GITLAB_API>';
+	hostUrl: '<YOU_GITLAB_API>';
 	output: 'json';
 	yourself.
 	
@@ -31,12 +31,19 @@ modelImporter := GitlabModelImporter new
 	withCommitDiffs: true.
 	
 tracer := Tracer new 
-   glhImporter: modelImporter;
-   gitlabApi: glphApi;
-   project: (modelImporter importProject: <YOUR_PROJECT_ID>);
-   filter: "Enter a string to filter commits by message, or an integer corresponding to a GitLab user ID to filter by author."
-   yourself.
+	glhImporter: modelImporter;
+	gitlabApi: glphApi;
+	project: (modelImporter importProject: <YOUR_PROJECT_ID>);
+	filter: 'acr' "or" 819 "Enter a string to filter commits by message, or an integer corresponding to a GitLab user ID to filter by author."
+	yourself.
 			
-tracer findRelevantChangesInFiles
+metric := Metrics new 
+	tracer: tracer;
+	yourself.
+
+"tracer findRelevantChangesInFiles"
+
+metric numberPerservedOrVanishedCommit.
+metric averageVanishedorModifiedTime.
 			
 ```
