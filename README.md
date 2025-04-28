@@ -2,8 +2,11 @@
 
 ```smalltalk
 Metacello new
-  githubUser: 'Marpioux' project: 'GitLab-Commit-Follower' commitish: 'master' path: 'src';
+  githubUser: 'Marpioux' project: 'GitLab-Commit-Follower' commitish: 'main' path: 'src';
   baseline: 'GitLabCommitFollower';
+  onConflict: [ :ex | ex useIncoming ];
+  onUpgrade: [ :ex | ex useIncoming ];
+  onDowngrade: [ :ex | ex useLoaded ];
   load
 ```
 
