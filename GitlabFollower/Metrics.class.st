@@ -45,7 +45,7 @@ Metrics >> commentsVanished [
 	vanished do: [ :commit |
 		| vlines | 
 		vlines  := ((commit at: 'vanished_time') at: 'vanishedLines') select: [:line |
-			((line asString findString: '//') > 0).
+			((line asString findString: '//') > 0 and: (line asString findString: '://') = 0).
 		].
 		vlines ifNotNil: [ vlines do: [ :line |
 				|code boolean |
@@ -57,6 +57,10 @@ Metrics >> commentsVanished [
 				boolean ifNotNil: [ 
 					json := Dictionary new.
 					json at: 'commentVanished' put: line.
+					json at: 'commit_id' put: (commit at: 'commit_id').
+					json at: 'deletion_date' put: ((commit at: 'vanished_time') at: 'lastDate').
+					json at: 'creation_date' put: (commit at: 'creation_date').
+					json at: 'duration' put: ((((commit at:'vanished_time') at: 'lastDate') asDateAndTime asSeconds - (commit at: 'creation_date') asDateAndTime asSeconds) / 60.0) asString, 'min' .
 					comments add: json.
 					].
 		]]].
