@@ -48,5 +48,6 @@ metric := Metrics new
 
 metric numberPerservedOrVanishedCommit.
 metric averageVanishedorModifiedTime.
+metric commentsVanished
 			
 ```
