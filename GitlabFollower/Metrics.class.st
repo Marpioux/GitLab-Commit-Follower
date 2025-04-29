@@ -31,6 +31,42 @@ Metrics >> averageVanishedOrModifiedTime [
 	^(totalTime / timeAverage size) / 60.0.
 ]
 
+{ #category : 'metrics' }
+Metrics >> commentsVanished [
+	| perserved vanished json comments|
+	
+	json := tracer findRelevantChangesInFiles.
+	json := NeoJSONReader fromString: json.
+	vanished := json at: 'vanished'.
+	perserved := json at: 'perserved'.
+	
+	comments := OrderedCollection new.
+	
+	vanished do: [ :commit |
+		| vlines | 
+		vlines  := ((commit at: 'vanished_time') at: 'vanishedLines') select: [:line |
+			((line asString findString: '//') > 0 and: (line asString findString: '://') = 0).
+		].
+		vlines ifNotNil: [ vlines do: [ :line |
+				|code boolean |
+				code := self divideComment: line.
+				perserved do: [ :pcommit | 
+					boolean := (pcommit at: 'addLines') select: [ :linep |
+						(linep findString: code) > 0.].				 
+				].
+				boolean ifNotNil: [ 
+					json := Dictionary new.
+					json at: 'commentVanished' put: line.
+					json at: 'commit_id' put: (commit at: 'commit_id').
+					json at: 'deletion_date' put: ((commit at: 'vanished_time') at: 'lastDate').
+					json at: 'creation_date' put: (commit at: 'creation_date').
+					json at: 'duration' put: ((((commit at:'vanished_time') at: 'lastDate') asDateAndTime asSeconds - (commit at: 'creation_date') asDateAndTime asSeconds) / 60.0) asString, 'min' .
+					comments add: json.
+					].
+		]]].
+	^ NeoJSONWriter toString: comments.
+]
+
 { #category : 'utilities' }
 Metrics >> countCommit: aDictionnary [
 	| aCommitArray boolean commitIdExist |
@@ -49,6 +85,13 @@ Metrics >> countCommit: aDictionnary [
 
 	^ aCommitArray size
 
+]
+
+{ #category : 'utilities' }
+Metrics >> divideComment: aLine [
+	| commentStart |
+	commentStart := (aLine findString: '//')-1.
+	^ (aLine copyFrom: 1 to: commentStart) withBlanksCondensed
 ]
 
 { #category : 'metrics' }
