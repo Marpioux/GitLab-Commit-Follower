@@ -24,11 +24,8 @@ Metrics >> averageVanishedOrModifiedTime [
 		((vanished_time at: 'vanished') or: (vanished_time at: 'modifier')) ifTrue: [ 
 			timeAverage add: ((vanished_time at: 'lastDate') asDateAndTime asSeconds - (aCommit at: 'creation_date') asDateAndTime asSeconds) ].
 		 ].
-	
-	timeAverage do: [ :time |
-		totalTime := totalTime + time.
-		 ].
-	^(totalTime / timeAverage size) / 60.0.
+
+	^ timeAverage average / 60.0
 ]
 
 { #category : 'metrics' }
